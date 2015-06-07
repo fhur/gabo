@@ -2,6 +2,16 @@
   (:require [clojure.test :refer :all]
             [gabo.core :refer :all]))
 
+
+(defmacro cleanup-iter-init-test-case
+  "Returns a (testing ...) form that asserts that
+  (is (= (cleanup-iter-init [:iter-init match])
+         [:iter-init exp1 exp2]))"
+  [match exp1 exp2]
+  `(testing (str "cleanup-iter-init (" ~match "=> " ~exp1 " " ~exp2 ")")
+     (is (= (cleanup-iter-init [:iter-init ~match])
+            [:iter-init ~exp1 ~exp2]))))
+
 (deftest is-functions
   (testing "is-literal"
     (is (is-literal [:literal "foo"])))
@@ -12,7 +22,7 @@
   (testing "is-iter-end"
     (is (is-iter-end [:iter-end "asdf"])))
   (testing "All should return false on nil arg"
-    (is (= [false false false false]
+    (is (= (repeat 4 false)
            (map #(% nil) [is-literal is-symbol
                           is-iter-init is-iter-end])))))
 
@@ -39,6 +49,9 @@
   (testing "iter-init tokenization"
     (is (= [[:iter-init "{{#loop}}"]]
            (tokenize "{{#loop}}"))))
+  (testing "iter-init tokenization with separator"
+    (is (= [[:iter-init "{{# loop ,}}"]]
+           (tokenize "{{# loop ,}}"))))
   (testing "iter-end tokenization"
     (is (= [[:iter-end "{{/loop}}"]]
            (tokenize "{{/loop}}"))))
@@ -49,6 +62,15 @@
            ;; the current implementation of tokenize sometimes separates literals instead of joining
            ;; them into the same token. join-literals joins all conseq literals
            (map first (join-literals (tokenize "foo {{a}} {{#loop}} asdf {{n}} {{/loop}}")))))))
+
+
+(deftest cleanup-iter-init-test
+  (cleanup-iter-init-test-case "{{# foo}}"   "foo" ",")
+  (cleanup-iter-init-test-case "{{# foo ,}}" "foo" ",")
+  (cleanup-iter-init-test-case "{{# foo sep }}" "foo" "sep")
+  (cleanup-iter-init-test-case "{{#foo sep }}" "foo" "sep")
+  (cleanup-iter-init-test-case "{{# foo sep}}" "foo" "sep"))
+
 
 (deftest parse-test
   (testing "The empty program"

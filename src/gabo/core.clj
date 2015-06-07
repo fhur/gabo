@@ -101,8 +101,9 @@
 
 (defn cleanup-iter-init
   [token]
-  (let [parts (clojure.string/split (re-find #"\w+\s*\S+" (last token)) #"\s+")]
-    (vector :iter-init (first parts) (last parts))))
+  (if (re-find #"\A\{\{#\s*\w+\s*\}\}" (last token))
+    (vector :iter-init (re-find #"\w+" (last token)) ",")
+    (cons :iter-init (re-seq #"\S+" (clojure.string/replace (last token) #"[\{\}#]" "")))))
 
 (defn cleanup-tokens
   "Given a list of tokens, it will cleanup the
