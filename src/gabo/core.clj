@@ -24,47 +24,48 @@
                               ~body))))))))
 
 (defn tokenize-chunk
+  "Given a string of code return a tuple of [match token]
+  where match is the exact string that matched and token is
+  the token that corresponds to the regex match.
+  Example: (tokenize-chunk '{{bar}} foo') will return
+  ['{{bar}}' [:symbol 'bar']]"
   [code]
   (when-match code
-    [new-lines #"\A\s+"] [:literal new-lines]
-    [sym #"\A\{\{\w+\}\}"] [:symbol sym]
-    [iter-init #"\A\{\{#\s*\w+\s*\S+?\s*\}\}"] [:iter-init iter-init]
-    [iter-end #"\A\{\{/\w+\}\}"] [:iter-end iter-end]
-    [literal #"\A.+?(?=\{\{)"] [:literal literal]
-    [literal #".*"] [:literal literal]))
+    [sym #"\A\{\{\s*(\w+)\s*\}\}"] [ (first sym) [:symbol (last sym) ] ]
+    [iter-end #"\A\{\{/\s*(\w+)\s*\}\}"] [ (first iter-end) [:iter-end (last iter-end) ]]
+    [iter-init #"\A\{\{#\s*(\w+)\s*\}\}"] [ (first iter-init) [:iter-init (last iter-init) :default ]]
+    [iter-init #"\A\{\{#\s*(\w+)\s+(\S+?)\s*\}\}"] [(first iter-init) (cons :iter-init (rest iter-init))]
+    [literal #"\A([\s\S][\s\S]*?)\{\{"] [(last literal) [:literal (last literal)]]
+    [literal #"\A[\s\S]*"] [literal [:literal literal]]))
 
 (defn tokenize
-  "Takes as argument a string and returns a vector
-  of [:token-id token-match]"
-  [string]
-  (loop [tokens []
-         code string]
+  [code]
+  (loop [code code
+         tokens []]
     (if (empty? code)
       tokens
-      (let [[token match] (tokenize-chunk code)]
-        (recur
-          (conj tokens [token match])
-          (.substring code (count match)))))))
+      (let [[str-match token] (tokenize-chunk code)]
+        (recur (.substring code (count str-match))
+               (conj tokens token))))))
+
+(defn is-token [token token-type]
+  (= (first token) token-type))
 
 (defn is-literal
   "Returns true if the given token is a :literal,
   false otherwise."
-  [token]
-  (= (first token) :literal))
+  [token] (is-token token :literal))
 
 (defn is-symbol
   "Returns true if the given token is a :symbol,
   false otherwise."
-  [token]
-  (= (first token) :symbol))
+  [token] (is-token token :symbol))
 
 (defn is-iter-init
-  [token]
-  (= (first token) :iter-init))
+  [token] (is-token token :iter-init))
 
 (defn is-iter-end
-  [token]
-  (= (first token) :iter-end))
+  [token] (is-token token :iter-end))
 
 (defn merge-literals
   "merges two literal tokens into one"
@@ -91,43 +92,43 @@
         (recur (rest tokens)
                (conj result (first tokens))))))
 
-(defn cleanup-symbol
-  [symbol-token]
-  [:symbol (clojure.string/replace (last symbol-token) #"[\s\{\}]" "")])
+(defn mutable-list
+  ([] (java.util.ArrayList.))
+  ([xs]
+   (let [result (mutable-list)]
+     (doseq [x xs]
+       (.add result x))
+     result)))
 
-(defn cleanup-iter-end
-  [symbol-token]
-  [:iter-end (clojure.string/replace (last symbol-token) #"[\s\{\}/]" "")])
 
-(defn cleanup-iter-init
-  [token]
-  (if (re-find #"\A\{\{#\s*\w+\s*\}\}" (last token))
-    (vector :iter-init (re-find #"\w+" (last token)) ",")
-    (cons :iter-init (re-seq #"\S+" (clojure.string/replace (last token) #"[\{\}#]" "")))))
+(defn add [mutable-list element]
+  (.add mutable-list element)
+  mutable-list)
 
-(defn cleanup-tokens
-  "Given a list of tokens, it will cleanup the
-  tokens to nodes using the following rules:
-  1. :literals do not change
-  2. :symbols will be cleaned up e.g. [:symbol {{foo}}]
-     to just [:symbol 'foo'"
+(defn build-ast
   [tokens]
-  (loop [tokens tokens
-         result []]
-    (if (empty? tokens)
-      result
-      (recur (rest tokens)
-             (conj result
-                   (let [token (first tokens)]
-                     (cond
-                       (is-literal token) token
-                       (is-symbol token) (cleanup-symbol token)
-                       (is-iter-init token) (cleanup-iter-init token)
-                       (is-iter-end token) (cleanup-iter-end token))))))))
+  ;; NOTE: until I can figure out how to implement this
+  ;; using persistent data structured, good ol' java will
+  ;; have to do.
+  (let [ast (mutable-list)
+        stack (java.util.Stack.)]
+    (.push stack ast) ; initialize the stack
+    (doseq [token tokens]
+      (cond
+        (or (is-literal token) (is-symbol token))
+          (add (.peek stack) token)
+        (is-iter-init token)
+          (let [mutable-token (mutable-list [:iter (second token) (last token)])]
+            (add mutable-token (mutable-list))
+            (add (.peek stack) mutable-token)
+            (.push stack (last mutable-token)))
+        (is-iter-end token)
+          (.pop stack)))
+    ast))
 
 (defn parse
   [string]
-  ((comp cleanup-tokens
+  ((comp build-ast
          join-literals
          tokenize) string))
 
