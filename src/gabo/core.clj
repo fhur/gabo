@@ -67,31 +67,6 @@
 (defn is-iter-end
   [token] (is-token token :iter-end))
 
-(defn merge-literals
-  "merges two literal tokens into one"
-  [token1 token2]
-  (vector :literal
-          (str (last token1)
-               (last token2))))
-
-(defn join-literals
-  "Given a collection of tokens, this function
-  will return a collection of tokens where all
-  :literal consequent tokens will be merged"
-  [tokens]
-  (loop [tokens tokens
-         result []]
-    (cond
-      (empty? tokens) result
-      (and (is-literal (first tokens))
-           (is-literal (last result)))
-        (recur (rest tokens)
-               (conj (pop result) (merge-literals (last result)
-                                                  (first tokens))))
-      :else
-        (recur (rest tokens)
-               (conj result (first tokens))))))
-
 (defn mutable-list
   ([] (java.util.ArrayList.))
   ([xs]
@@ -129,6 +104,5 @@
 (defn parse
   [string]
   ((comp build-ast
-         join-literals
          tokenize) string))
 
