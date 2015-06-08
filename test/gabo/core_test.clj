@@ -105,7 +105,7 @@
 
 
 
-#_(deftest parse-test
+(deftest parse-test
   (testing "The empty program"
     (is (= []
            (parse ""))))
@@ -124,15 +124,8 @@
            (parse "{{# loop sep}} literal {{/loop}}"))))
 
   (testing "A template with nested :iters"
-    (is (= [[:literal "Fooo "]
-            [:iter "loop" "," [[:literal " lit "] [:iter "inner_loop" "," [[:literal "foo"]]]]] [:literal " bar"]]
-           (parse "Fooo
-                  {{# loop , }}
-                    lit
-                    {{#inner_loop , }}
-                      inner
-                    {{/inner_loop}}
-                    foo
-                  {{/loop}}
-                  bar")))))
+    (is (= (parse "{{#a}}{{#b}}{{c}}{{/b}}{{/a}}")
+           [[:iter "a" :default
+            [[:iter "b" :default [[:symbol "c"]]]]]]))))
+
 
