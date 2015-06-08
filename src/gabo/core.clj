@@ -67,6 +67,9 @@
 (defn is-iter-end
   [token] (is-token token :iter-end))
 
+(defn is-iter
+  [token] (is-token token :iter))
+
 (defn mutable-list
   ([] (java.util.ArrayList.))
   ([xs]
@@ -79,6 +82,20 @@
 (defn add [mutable-list element]
   (.add mutable-list element)
   mutable-list)
+
+
+(defn persist-tree
+  "Given a mutable list of nodes, converts it to a immutable tree"
+  [tree]
+  (cond
+    (or (is-literal tree) (is-symbol tree))
+      (vec tree)
+    (is-iter tree)
+      (let [[token-type sym separator sub-tree] tree]
+        (vector token-type sym separator (map persist-tree sub-tree)))
+    :else
+      (map persist-tree tree)))
+
 
 (defn build-ast
   [tokens]
@@ -103,6 +120,7 @@
 
 (defn parse
   [string]
-  ((comp build-ast
+  ((comp persist-tree
+         build-ast
          tokenize) string))
 
