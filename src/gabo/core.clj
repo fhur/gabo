@@ -31,7 +31,7 @@
   ['{{bar}}' [:symbol 'bar']]"
   [code]
   (when-match code
-    [sym #"\A\{\{\s*(\w+)\s*\}\}"] [ (first sym) [:symbol (last sym) ] ]
+    [sym #"\A\{\{\s*([\w-\.]+)\s*\}\}"] [ (first sym) [:symbol (last sym) ] ]
     [iter-end #"\A\{\{/\s*(\w+)\s*\}\}"] [ (first iter-end) [:iter-end (last iter-end) ]]
     [iter-init #"\A\{\{#\s*(\w+)\s*\}\}"] [ (first iter-init) [:iter-init (last iter-init) :default ]]
     [iter-init #"\A\{\{#\s*(\w+)\s+(\S+?)\s*\}\}"] [(first iter-init) (cons :iter-init (rest iter-init))]
@@ -78,11 +78,9 @@
        (.add result x))
      result)))
 
-
 (defn add [mutable-list element]
   (.add mutable-list element)
   mutable-list)
-
 
 (defn persist-tree
   "Given a mutable list of nodes, converts it to a immutable tree"
@@ -123,4 +121,6 @@
   ((comp persist-tree
          build-ast
          tokenize) string))
+
+
 

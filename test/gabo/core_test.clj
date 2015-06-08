@@ -29,8 +29,7 @@
   (let [test-name-sym (symbol test-name)]
     (concat `(deftest ~test-name-sym)
             (for [[_ args operator expected] (partition 4 expectations)]
-
-            `(expected (apply ~func ~args) ~operator ~expected)))))
+              `(expected (apply ~func ~args) ~operator ~expected)))))
 
 (deftest is-functions
   (expected (is-literal [:literal "foo"]) = true)
@@ -66,7 +65,11 @@
   :when ["{{foo}}"] = [ "{{foo}}" [:symbol "foo"]]
   :when ["{{ foo }}"] = [ "{{ foo }}" [:symbol "foo"]]
   :when ["{{ foo}}"] = [ "{{ foo}}" [:symbol "foo"]]
-  :when ["{{foo }}"] = [ "{{foo }}" [:symbol "foo"]])
+  :when ["{{foo }}"] = [ "{{foo }}" [:symbol "foo"]]
+  :when ["{{foo-bar}}"] = ["{{foo-bar}}" [:symbol "foo-bar"]]
+  :when ["{{ foo-bar }}"] = ["{{ foo-bar }}" [:symbol "foo-bar"]]
+  :when ["{{ foo-bar-baz }}"] = ["{{ foo-bar-baz }}" [:symbol "foo-bar-baz"]]
+  :when ["{{ . }}"] = ["{{ . }}" [:symbol "."]])
 
 (expected-when "tokenize-chunk-iter-end" tokenize-chunk
   :when ["{{/ foo }}"] = [ "{{/ foo }}" [:iter-end "foo"]]
