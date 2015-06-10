@@ -113,7 +113,12 @@
   :when ["Hi {{name}}, how are you?" {:name "Bob"}] = "Hi Bob, how are you?"
   :when ["name: {{name}}, last name {{last-name}}" {:name "Bob" :last-name "Doe"}] = "name: Bob, last name Doe"
   :when ["Hi {{name}}, your friends are{{# friends ,}} {{.}}{{/friends}}" {:name "Bob" :friends ["Frank" "Charlie"]}]
-        = "Hi Bob, your friends are Frank, Charlie")
+        = "Hi Bob, your friends are Frank, Charlie"
+  :when ["People:{{#items}} {{name}}: {{age}}{{/items}}"
+         {:items [{:name "Bob" :age 15}
+                  {:name "Frank" :age 23}
+                  {:name "Ann" :age 12}]}]
+        = "People: Bob: 15, Frank: 23, Ann: 12")
 
 
 (deftest parse-test

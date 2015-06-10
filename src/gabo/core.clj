@@ -134,7 +134,7 @@
         (is-iter tree)
           (apply str
                  (let [[_ sym separator sub-tree] tree ]
-                   (interpose separator
+                   (interpose (if (= :default separator) "," separator)
                               (for [item (ctx (keyword sym))]
                                 (eval-tree sub-tree item)))))
         (coll? tree)
