@@ -106,6 +106,14 @@
   :when ["{{# a ,}}{{b}}{{#c}}{{d}}{{/c}}{{/a}}"] =
         [[:iter-init "a" ","] [:symbol "b"] [:iter-init "c" :default] [:symbol "d"] [:iter-end "c"] [:iter-end "a"]])
 
+(expected-when "render-test" render
+  :when ["" {}] = ""
+  :when ["literal" {}] = "literal"
+  :when ["lit\nera\nl" {:foo "bar"}] = "lit\nera\nl"
+  :when ["Hi {{name}}, how are you?" {:name "Bob"}] = "Hi Bob, how are you?"
+  :when ["name: {{name}}, last name {{last-name}}" {:name "Bob" :last-name "Doe"}] = "name: Bob, last name Doe"
+  :when ["Hi {{name}}, your friends are{{# friends ,}} {{.}}{{/friends}}" {:name "Bob" :friends ["Frank" "Charlie"]}]
+        = "Hi Bob, your friends are Frank, Charlie")
 
 
 (deftest parse-test

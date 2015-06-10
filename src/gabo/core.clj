@@ -122,5 +122,24 @@
          build-ast
          tokenize) string))
 
+(defn eval-tree
+  [tree ctx]
+  (cond (is-literal tree)
+          (second tree)
+        (is-symbol tree)
+          (let [[_ sym] tree]
+            (if (= sym ".")
+              (str ctx)
+              (get ctx (keyword sym) "")))
+        (is-iter tree)
+          (apply str
+                 (let [[_ sym separator sub-tree] tree ]
+                   (interpose separator
+                              (for [item (ctx (keyword sym))]
+                                (eval-tree sub-tree item)))))
+        (coll? tree)
+          (apply str (map #(eval-tree % ctx) tree))))
 
-
+(defn render
+  [string ctx]
+  (eval-tree (parse string) ctx))
