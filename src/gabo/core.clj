@@ -1,4 +1,24 @@
-(ns gabo.core)
+(ns gabo.core
+  (:import (java.util ArrayList Stack)))
+
+(defmacro define-is-token-funcs
+  "Given a list of keywords k1, k2, ..., kn
+  this macro will define functions is-k1, is-k2, ... is-kn
+  where each one takes as input a token and returns true if the
+  token matches the given type
+  Example: (define-is-token-funcs :foo :bar)
+  will define two functions (is-foo [token]) and (is-bar [token]) which
+  test that the token is of type :foo and :bar respectively."
+  [& token-types]
+  (cons 'do
+         (map (fn [token-type]
+                `(defn ~(symbol (str "is-" (name token-type)))
+                   ~(str "Returns true if the given token is of type " token-type ", false otherwise")
+                  [token#] (= (first token#) ~token-type)))
+              token-types)))
+
+;; execute define-is-token-funcs to actually define the given functions
+(define-is-token-funcs :literal :symbol :iter-init :iter-end :iter)
 
 (defmacro when-match
   "Syntax:
@@ -48,39 +68,9 @@
         (recur (.substring code (count str-match))
                (conj tokens token))))))
 
-(defn is-token [token token-type]
-  (= (first token) token-type))
-
-(defn is-literal
-  "Returns true if the given token is a :literal,
-  false otherwise."
-  [token] (is-token token :literal))
-
-(defn is-symbol
-  "Returns true if the given token is a :symbol,
-  false otherwise."
-  [token] (is-token token :symbol))
-
-(defn is-iter-init
-  [token] (is-token token :iter-init))
-
-(defn is-iter-end
-  [token] (is-token token :iter-end))
-
-(defn is-iter
-  [token] (is-token token :iter))
-
-(defn mutable-list
-  ([] (java.util.ArrayList.))
-  ([xs]
-   (let [result (mutable-list)]
-     (doseq [x xs]
-       (.add result x))
-     result)))
-
-(defn add [mutable-list element]
-  (.add mutable-list element)
-  mutable-list)
+(defn add! [array-list element]
+  (.add array-list element)
+  array-list)
 
 (defn persist-tree
   "Given a mutable list of nodes, converts it to a immutable tree"
@@ -100,17 +90,17 @@
   ;; NOTE: until I can figure out how to implement this
   ;; using persistent data structured, good ol' java will
   ;; have to do.
-  (let [ast (mutable-list)
+  (let [ast (ArrayList.)
         stack (java.util.Stack.)]
     (.push stack ast) ; initialize the stack
     (doseq [token tokens]
       (cond
         (or (is-literal token) (is-symbol token))
-          (add (.peek stack) token)
+          (add! (.peek stack) token)
         (is-iter-init token)
-          (let [mutable-token (mutable-list [:iter (second token) (last token)])]
-            (add mutable-token (mutable-list))
-            (add (.peek stack) mutable-token)
+          (let [mutable-token (ArrayList. [:iter (second token) (last token)])]
+            (add! mutable-token (ArrayList.))
+            (add! (.peek stack) mutable-token)
             (.push stack (last mutable-token)))
         (is-iter-end token)
           (.pop stack)))
@@ -123,6 +113,7 @@
          tokenize) string))
 
 (defn eval-tree
+  "Evaluates a compiled template as a tree with the given context"
   [tree ctx]
   (cond (is-literal tree)
           (second tree)
@@ -141,5 +132,6 @@
           (apply str (map #(eval-tree % ctx) tree))))
 
 (defn render
-  [string ctx]
-  (eval-tree (parse string) ctx))
+  "Compiles and evaluates the template with the given context"
+  [template ctx]
+  (eval-tree (parse template) ctx))
