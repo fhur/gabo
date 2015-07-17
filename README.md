@@ -2,6 +2,8 @@
 
 A minimal templating language for learning purposes only.
 
+[![Clojars Project](http://clojars.org/gabo/latest-version.svg)](http://clojars.org/gabo)
+
 ## Usage
 
 First things first:
