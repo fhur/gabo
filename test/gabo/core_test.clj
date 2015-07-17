@@ -1,36 +1,9 @@
 (ns gabo.core-test
   (:require [clojure.test :refer :all]
-            [gabo.core :refer :all]))
+            [gabo.core :refer :all]
+            [presto.core :refer :all]))
 
-(defmacro expected
-  "Simple expectation macro.
-  Asserts that the operator applied to actual and expectation yields a truth result
-  Example: (expected (+ 5 3) = 8)
-           (expected (inc 2) = 3)"
-  [actual operator expectation]
-  `(testing (str "Expected " '~actual " to " '~operator " " '~expectation)
-    (is (~operator ~actual
-                   ~expectation))))
-
-(defmacro expected-when
-  "Creates a deftest with a group of 'expected' calls. It should
-  be used to quickly test for several input cases to a given function.
-  Syntax:
-  (expected-when 'test-name' 'function'
-    :when ['args'] 'operator' 'expectation'
-    ...
-    :when ['args'] 'operator' 'expectation')
-  Example:
-  (expected-when inc-test inc
-    :when [0] = 1
-    :when [1] = 2
-    :when [3] = 3)"
-  [test-name func & expectations]
-  (let [test-name-sym (symbol test-name)]
-    (concat `(deftest ~test-name-sym)
-            (for [[_ args operator expected] (partition 4 expectations)]
-              `(expected (apply ~func ~args) ~operator ~expected)))))
-
+;; Test the is-literal, is-symbol, etc. functions
 (deftest is-functions
   (expected (is-literal [:literal "foo"]) = true)
   (expected (is-symbol [:symbol "arg"]) = true)
@@ -41,24 +14,6 @@
     (is (= (repeat 4 false)
            (map #(% nil) [is-literal is-symbol
                           is-iter-init is-iter-end])))))
-
-(deftest when-match-test
-  (testing "Assigns the result of matching the
-           string to to the symbol"
-    (is (= "f"
-           (when-match "foobar"
-             [match #"^f"] match))))
-
-  (testing "Several matches"
-    (is (= ["xabcx" "abc"]
-           (when-match " xabcx "
-            [match #"x(\w+)x"] match))))
-
-  (testing "Returns the first match in order"
-    (is (= "pizza"
-           (when-match "pizzapie"
-             [match #"pizza"] match
-             [match #"pie"] match)))))
 
 (expected-when "tokenize-chunk-test" tokenize-chunk
   :when ["{{n}}"] = [ "{{n}}" [:symbol "n"]]
@@ -143,5 +98,6 @@
     (is (= (parse "{{#a}}{{#b}}{{c}}{{/b}}{{/a}}")
            [[:iter "a" :default
             [[:iter "b" :default [[:symbol "c"]]]]]]))))
+
 
 
