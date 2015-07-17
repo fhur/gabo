@@ -36,13 +36,22 @@ Example:
 </ol>")
 
 (render template {:name "Bob" :friends ["Billy", "Ann", "Rob", "Sue"]})
+
+;; Output:
+"<p> Hi Bob Your friends are: </p>
+<ol>
+<li>Billy</li>
+<li>Ann</li>
+<li>Rob</li>
+<li>Sue</li>
+</ol>"
 ```
 
 #### Syntax:
 
 ##### Symbols `{{somevar}}`
 Symbols are replaced with the textual representation of whatever you
-supply are context.
+supply as context.
 
 Example:
 ```clojure
@@ -52,7 +61,8 @@ user=> (render "Hi {{name}}" {:name "Charly"})
 
 ##### Iterating `{{#coll}} body {{/coll}}`
 To iterate over a collection you need to specify the name of the
-collection and you can supply an optional separator argument as `{{#coll 'foo'}}`.
+collection. You can supply an optional separator argument using the
+following syntax `{{#coll 'foo'}}`.
 
 Example:
 ```clojure
@@ -63,7 +73,7 @@ user=> (render "{{#numbers '\n'}}{{.}}{{/numbers}}" {:numbers [1 2 3 4 5]})
 ```
 
 As you can see, the default separator is ',' but you can supply your own
-separator.
+separator, even no separator at all ('').
 
 You can also supply a map as the elements of the collection being
 iterated:
