@@ -4,6 +4,24 @@ A minimal templating language for learning purposes only.
 
 ## Usage
 
+First things first:
+```clojure
+(use 'gabo.core)
+```
+
+There are only 3 functions you should be using:
+
+#### `(render template context)`
+Renders a template with the given context. See the template syntax section on how to write templates.
+#### `(parse template)`
+Parses and compiles a template. The result is a tree representation of the template which can later be used
+by `eval-tree`
+#### `(eval-tree tree context)`
+Evaluates a tree as produced by `parse` with the given context. The difference between `render` and `eval-tree`
+is that `render` compiles a template every single time while `eval-tree` reuses the compiled template.
+
+## Template syntax
+
 Templates are written in syntax very similar to mustache templates.
 
 Example:
@@ -20,7 +38,7 @@ Example:
 
 #### Syntax:
 
-##### Symbols `{{somevar`}}
+##### Symbols `{{somevar}}`
 Symbols are replaced with the textual representation of whatever you
 supply are context.
 
