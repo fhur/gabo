@@ -1,4 +1,4 @@
-(defproject gabo "0.1.1"
+(defproject gabo "0.1.2"
   :description "A simple templating language for learning purposes"
   :url "http://github.com/fhur/gabo"
   :license {:name "Eclipse Public License"
