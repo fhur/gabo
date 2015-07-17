@@ -15,59 +15,13 @@
            (map #(% nil) [is-literal is-symbol
                           is-iter-init is-iter-end])))))
 
-(expected-when "tokenize-chunk-test" tokenize-chunk
-  :when ["{{n}}"] = [ "{{n}}" [:symbol "n"]]
-  :when ["{{foo}}"] = [ "{{foo}}" [:symbol "foo"]]
-  :when ["{{ foo }}"] = [ "{{ foo }}" [:symbol "foo"]]
-  :when ["{{ foo}}"] = [ "{{ foo}}" [:symbol "foo"]]
-  :when ["{{foo }}"] = [ "{{foo }}" [:symbol "foo"]]
-  :when ["{{foo-bar}}"] = ["{{foo-bar}}" [:symbol "foo-bar"]]
-  :when ["{{ foo-bar }}"] = ["{{ foo-bar }}" [:symbol "foo-bar"]]
-  :when ["{{ foo-bar-baz }}"] = ["{{ foo-bar-baz }}" [:symbol "foo-bar-baz"]]
-  :when ["{{ . }}"] = ["{{ . }}" [:symbol "."]])
-
-(expected-when "tokenize-chunk-iter-end" tokenize-chunk
-  :when ["{{/ foo }}"] = [ "{{/ foo }}" [:iter-end "foo"]]
-  :when ["{{/foo }}"] = [ "{{/foo }}" [:iter-end "foo"]]
-  :when ["{{/ foo}}"] = [ "{{/ foo}}" [:iter-end "foo"]]
-  :when ["{{/foo}}"] = [ "{{/foo}}" [:iter-end "foo"]])
-
-(expected-when "tokenize-chunk-iter-init" tokenize-chunk
-  :when ["{{#foo}}"] = [ "{{#foo}}" [:iter-init "foo" :default]]
-  :when ["{{# foo}}"] = [ "{{# foo}}" [:iter-init "foo" :default]]
-  :when ["{{#foo }}"] = [ "{{#foo }}" [:iter-init "foo" :default]]
-  :when ["{{# foo }}"] = [ "{{# foo }}" [:iter-init "foo" :default]]
-  :when ["{{#foo ,}}"] = [ "{{#foo ,}}" [:iter-init "foo" ","]]
-  :when ["{{#foo , }}"] = [ "{{#foo , }}" [:iter-init "foo" ","]]
-  :when ["{{# foo , }}"] = [ "{{# foo , }}" [:iter-init "foo" ","]]
-  :when ["{{#foo sep}}"] = [ "{{#foo sep}}" [:iter-init "foo" "sep"]]
-  :when ["{{# foo sep }} "] = [ "{{# foo sep }}" [:iter-init "foo" "sep"]])
-
-(expected-when "tokenize-literals" tokenize-chunk
-  :when ["asdfasdf"] = [ "asdfasdf" [:literal "asdfasdf"]]
-  :when ["asdf {{foo}}"] = [ "asdf " [:literal "asdf "]]
-  :when ["as\ndf "] = [ "as\ndf " [:literal "as\ndf "]]
-  :when ["as\ndf {{foo}}"] = [ "as\ndf " [:literal "as\ndf "]])
-
-(expected-when "tokenize-test" tokenize
-  :when [""] = []
-  :when ["lit"] = [[:literal "lit"]]
-  :when ["{{#loop}}"] = [[:iter-init "loop" :default]]
-  :when ["{{# loop ,}}"] = [[:iter-init "loop" ","]]
-  :when ["{{/loop}}"] = [[:iter-end "loop"]]
-  :when ["foo {{a}}{{#loop}} asdf {{n}} {{/loop}}"] =
-        [[:literal "foo "] [:symbol "a"] [:iter-init "loop" :default] [:literal " asdf "] [:symbol "n"]
-        [:literal " "] [:iter-end "loop"]]
-  :when ["{{# a ,}}{{b}}{{#c}}{{d}}{{/c}}{{/a}}"] =
-        [[:iter-init "a" ","] [:symbol "b"] [:iter-init "c" :default] [:symbol "d"] [:iter-end "c"] [:iter-end "a"]])
-
 (expected-when "render-test" render
   :when ["" {}] = ""
   :when ["literal" {}] = "literal"
   :when ["lit\nera\nl" {:foo "bar"}] = "lit\nera\nl"
   :when ["Hi {{name}}, how are you?" {:name "Bob"}] = "Hi Bob, how are you?"
   :when ["name: {{name}}, last name {{last-name}}" {:name "Bob" :last-name "Doe"}] = "name: Bob, last name Doe"
-  :when ["Hi {{name}}, your friends are{{# friends ,}} {{.}}{{/friends}}" {:name "Bob" :friends ["Frank" "Charlie"]}]
+  :when ["Hi {{name}}, your friends are{{# friends ','}} {{.}}{{/friends}}" {:name "Bob" :friends ["Frank" "Charlie"]}]
         = "Hi Bob, your friends are Frank, Charlie"
   :when ["People:{{#items}} {{name}}: {{age}}{{/items}}"
          {:items [{:name "Bob" :age 15}
@@ -88,11 +42,11 @@
   (testing "A template with an :iter"
     (is (= [[:literal "Your name is"] [:symbol "name"] [:literal " and your friends are "]
             [:iter "friends" "," [ [:literal " "] [:symbol "name"] [:literal " "] ]]]
-           (parse "Your name is{{name}} and your friends are {{#friends , }} {{name}} {{/friends}}"))))
+           (parse "Your name is{{name}} and your friends are {{#friends ',' }} {{name}} {{/friends}}"))))
 
   (testing "Simple iter"
     (is (= [[:iter "loop" "sep" [[:literal " literal "]]]]
-           (parse "{{# loop sep}} literal {{/loop}}"))))
+           (parse "{{# loop 'sep'}} literal {{/loop}}"))))
 
   (testing "A template with nested :iters"
     (is (= (parse "{{#a}}{{#b}}{{c}}{{/b}}{{/a}}")
