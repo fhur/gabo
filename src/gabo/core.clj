@@ -2,11 +2,18 @@
   (:require [gabo.util :refer :all]
             [gabo.lexer :refer :all]))
 
+(defn- unexpected-token-exception
+  [token]
+  (new IllegalArgumentException
+       (str "Unexpected token " token)))
+
 ;; execute define-is-token-funcs to actually define the given functions:
 ;; is-literal, is-symbol, etc.
 (define-is-token-funcs :literal :symbol :iter-init :iter-end :iter)
 
-(defn find-iter-sub-list
+(defn- find-iter-sub-list
+  "Returns all tokens between an :iter-init and corresponding closing
+  :iter-end pair."
   [tokens]
   {:pre [(is-iter-init (first tokens))]}
   (loop [remaining-tokens (rest tokens)
@@ -21,11 +28,13 @@
                      (is-iter-end token)  (dec stack)
                      :else                stack))))))
 
-(defn build-ast
+(defn- build-ast
+  "Builds an abstract syntax tree given a list of tokens as produced by tokenize"
   [tokens]
   (loop [tokens tokens
          ast []]
-    (let [token (first tokens)]
+    (let [token (first tokens)
+          [_ identifier separator] token]
       (cond
         (empty? tokens) ast
         (or (is-literal token) (is-symbol token))
@@ -34,10 +43,11 @@
         (is-iter-init token)
           (let [sub-list (find-iter-sub-list tokens)]
             (recur (drop (+ 2 (count sub-list)) tokens)
-                   (conj ast (vector :iter
-                                     (second token)
-                                     (last token)
-                                     (build-ast sub-list)))))))))
+                   (conj ast [:iter identifier
+                                    separator
+                                    (build-ast sub-list)])))
+        :else
+          (throw (unexpected-token-exception token))))))
 
 (defn parse
   "Parses a template string and returns a compiled tree representation of the template.
