@@ -1,58 +1,51 @@
 (ns gabo.core
   (:require [gabo.util :refer :all]
-            [gabo.lexer :refer :all])
-  (:import (java.util ArrayList Stack)))
+            [gabo.lexer :refer :all]))
 
 ;; execute define-is-token-funcs to actually define the given functions:
 ;; is-literal, is-symbol, etc.
 (define-is-token-funcs :literal :symbol :iter-init :iter-end :iter)
 
-(defn add! [array-list element]
-  (.add array-list element)
-  array-list)
-
-(defn persist-tree
-  "Given a mutable list of nodes, converts it to a immutable tree"
-  [tree]
-  (cond
-    (or (is-literal tree) (is-symbol tree))
-      (vec tree)
-    (is-iter tree)
-      (let [[token-type sym separator sub-tree] tree]
-        (vector token-type sym separator (map persist-tree sub-tree)))
-    :else
-      (map persist-tree tree)))
-
+(defn find-iter-sub-list
+  [tokens]
+  {:pre [(is-iter-init (first tokens))]}
+  (loop [remaining-tokens (rest tokens)
+         sub-list []
+         stack 0]
+    (let [token (first remaining-tokens)]
+      (if (and (zero? stack) (is-iter-end token))
+        sub-list
+        (recur (rest remaining-tokens)
+               (conj sub-list token)
+               (cond (is-iter-init token) (inc stack)
+                     (is-iter-end token)  (dec stack)
+                     :else                stack))))))
 
 (defn build-ast
   [tokens]
-  ;; NOTE: until I can figure out how to implement this
-  ;; using persistent data structured, good ol' java will
-  ;; have to do.
-  (let [ast (ArrayList.)
-        stack (java.util.Stack.)]
-    (.push stack ast) ; initialize the stack
-    (doseq [token tokens]
+  (loop [tokens tokens
+         ast []]
+    (let [token (first tokens)]
       (cond
+        (empty? tokens) ast
         (or (is-literal token) (is-symbol token))
-          (add! (.peek stack) token)
+          (recur (rest tokens)
+                 (conj ast token))
         (is-iter-init token)
-          (let [mutable-token (ArrayList. [:iter (second token) (last token)])]
-            (add! mutable-token (ArrayList.))
-            (add! (.peek stack) mutable-token)
-            (.push stack (last mutable-token)))
-        (is-iter-end token)
-          (.pop stack)))
-    ast))
+          (let [sub-list (find-iter-sub-list tokens)]
+            (recur (drop (+ 2 (count sub-list)) tokens)
+                   (conj ast (vector :iter
+                                     (second token)
+                                     (last token)
+                                     (build-ast sub-list)))))))))
 
 (defn parse
   "Parses a template string and returns a compiled tree representation of the template.
   You can later use (eval-tree tree context) to render a compiled template with a given
   context."
   [string]
-  ((comp persist-tree
-         build-ast
-         tokenize) string))
+  (-> (tokenize string)
+      build-ast))
 
 (defn eval-tree
   "Evaluates a compiled template as a tree with the given context"
