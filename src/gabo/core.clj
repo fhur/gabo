@@ -33,21 +33,22 @@
   [tokens]
   (loop [tokens tokens
          ast []]
-    (let [token (first tokens)
-          [_ identifier separator] token]
-      (cond
-        (empty? tokens) ast
-        (or (is-literal token) (is-symbol token))
-          (recur (rest tokens)
-                 (conj ast token))
-        (is-iter-init token)
-          (let [sub-list (find-iter-sub-list tokens)]
-            (recur (drop (+ 2 (count sub-list)) tokens)
-                   (conj ast [:iter identifier
-                                    separator
-                                    (build-ast sub-list)])))
+    (if (empty? tokens)
+      ast
+      (let [token (first tokens)]
+        (cond
+          (or (is-literal token) (is-symbol token))
+            (recur (rest tokens)
+                   (conj ast token))
+          (is-iter-init token)
+            (let [sub-list (find-iter-sub-list tokens)
+                  [_ token-val separator] token]
+              (recur (drop (+ 2 (count sub-list)) tokens)
+                     (conj ast [:iter token-val
+                                      separator
+                                      (build-ast sub-list)])))
         :else
-          (throw (unexpected-token-exception token))))))
+          (throw (unexpected-token-exception token)))))))
 
 (defn parse
   "Parses a template string and returns a compiled tree representation of the template.
@@ -63,16 +64,18 @@
   (cond (is-literal tree)
           (second tree)
         (is-symbol tree)
-          (let [[_ sym] tree]
-            (if (= sym ".")
+          (let [[_ token-val] tree]
+            (if (= token-val ".")
               (str ctx)
-              (get ctx (keyword sym) "")))
+              (get ctx (keyword token-val) "")))
         (is-iter tree)
-          (apply str
-                 (let [[_ sym separator sub-tree] tree ]
-                   (interpose (if (= :default separator) "," separator)
-                              (for [item (ctx (keyword sym))]
-                                (eval-tree sub-tree item)))))
+          (let [[_ token-val separator sub-tree] tree
+                coll (get ctx (keyword token-val) [])]
+            (->> (map #(eval-tree sub-tree %) coll)
+                 (interpose (if (= :default separator) "," separator))
+                 (apply str)))
+        ;; Only executed once: the first time eval-tree is called, no subsequent
+        ;; recursive call will go through this branch.
         (coll? tree)
           (apply str (map #(eval-tree % ctx) tree))))
 

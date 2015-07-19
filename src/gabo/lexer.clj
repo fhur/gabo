@@ -2,13 +2,13 @@
   (:require [gabo.util :refer :all]))
 
 (defn tokenize-chunk
-  "Given a string of code return a tuple of [match token]
+  "Given a template substring returns a tuple of [match token]
   where match is the exact string that matched and token is
   the token that corresponds to the regex match.
   Example: (tokenize-chunk '{{bar}} foo') will return
   ['{{bar}}' [:symbol 'bar']]"
-  [code]
-  (when-match code
+  [template]
+  (when-match template
     ;; match symbols e.g. {{foo}}
     [sym #"\A\{\{\s*([\w-\.]+)\s*\}\}"]
       [ (first sym) [:symbol (last sym) ] ]
@@ -34,13 +34,13 @@
       [literal [:literal literal]]))
 
 (defn tokenize
-  [code]
-  (loop [code code
+  [template]
+  (loop [remaining template
          tokens []]
-    (if (empty? code)
+    (if (empty? remaining)
       tokens
-      (let [[str-match token] (tokenize-chunk code)]
-        (recur (.substring code (count str-match))
+      (let [[str-match token] (tokenize-chunk remaining)]
+        (recur (.substring remaining (count str-match))
                (conj tokens token))))))
 
 
