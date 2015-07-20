@@ -1,6 +1,8 @@
 # gabo
 
-A minimal templating language for learning purposes only.
+A minimal templating language for learning purposes only. Read the blog
+post
+[here](http://fhur.github.io/mustache/parsing/templates/2015/06/12/writing-a-template-language-with-clojure.html)
 
 [![Clojars Project](http://clojars.org/gabo/latest-version.svg)](http://clojars.org/gabo)
 
